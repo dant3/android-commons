@@ -1,0 +1,64 @@
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+
+project.extensions.create("git", Git, project.rootProject.rootDir)
+
+class Git {
+    private File projectRoot;
+    private String gitLogFormat = '\'%h <%an> - %s (%cr)\''
+    private def gitLogParams = ["log", "--graph", "--pretty=format:$gitLogFormat", "--abbrev-commit", "--date=short" ]
+
+    public Git(File projectRoot) {
+        this.projectRoot = projectRoot;
+    }
+
+    private List<String> gitCmd() {
+        ["git", "--git-dir=$projectRoot/.git", "--work-tree=$projectRoot", "--no-pager"]
+    }
+
+    private List<String> gitCmd(List<String> args) {
+        gitCmd() + args
+    }
+
+    private static Logger logger = LoggerFactory.getLogger('git')
+    String commitSha() {
+        processOutHead(gitCmd(["rev-parse", "HEAD"]))
+    }
+
+    String branch() {
+        processOutHead(gitCmd(["rev-parse", "--abbrev-ref", "HEAD"]))
+    }
+
+    String collectChangeLog(String previousSha, String currentSha) {
+        def processDef = gitCmd(gitLogParams) + "$previousSha..$currentSha"
+        allProcessOut(processDef)
+    }
+
+    String collectLastChangesLog(int lastCommitsNumber) {
+        def processDef = gitCmd(gitLogParams) + ["-n", lastCommitsNumber]
+        allProcessOut(processDef)
+    }
+
+    private static String processOutHead(def processDef) {
+        processOut(processDef).first()
+    }
+
+    private static List<String> processOut(def processDef) {
+        runProcess(processDef).in.readLines()
+    }
+
+    private static String allProcessOut(def processDef) {
+        runProcess(processDef).in.getText()
+    }
+
+    private static Process runProcess(def processDef) {
+        def process = processDef.execute()
+        process.waitFor()
+        def stdErr = process.err.getText()
+        if (!stdErr.isEmpty()) {
+            logger.err("Error running `$processDef`:\n$stdErr".toString())
+        }
+        process
+    }
+}

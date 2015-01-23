@@ -1,0 +1,42 @@
+tasks.withType(JavaCompile) {
+    doFirst {
+        if (sourceCompatibility == '1.6') {
+            options.fork = true
+            if (System.env.JDK6_HOME != null) {
+                options.bootClasspath = createBootClasspathForJDKHome(System.env.JDK6_HOME)
+            } else if (isJavaVersionGreaterThen(6)) {
+                options.bootClasspath = createBootClasspathForJDKHome(System.getProperty("java.home"))
+            }
+        }
+    }
+}
+
+String createBootClasspathForJDKHome(String jdkHome) {
+    // defines '/' operator on String to construct file path
+    // SA: http://groovy.codehaus.org/Operator+Overloading
+    //     http://groovy.codehaus.org/ExpandoMetaClass
+    String.metaClass.div << { String otherString ->
+        delegate + File.separator + otherString
+    }
+
+    def bootClasspathJars = [
+            "rt.jar",
+            "jsse.jar"
+    ]
+    def bootClasspathPath = jdkHome / "lib"
+
+    bootClasspathJars.collect { // appends a path
+        bootClasspathPath / it
+    }.join(File.pathSeparator)
+}
+
+boolean isJavaVersionGreaterThen(int version) {
+    def javaVersionString = System.getProperty("java.version")
+    def javaVersion = javaVersionString.tokenize('.')
+    if (javaVersion.size > 1) {
+        javaVersion[1].toInteger() > version
+    } else {
+        throw new UnsupportedOperationException(
+                "Don't know how to interpret such java version: $javaVersionString, (${javaVersion.length})")
+    }
+}

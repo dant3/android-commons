@@ -1,0 +1,116 @@
+plugins {
+    id 'java'
+    id 'maven'
+    id 'nebula.provided-base' version '2.0.1'
+    // -- analysis
+    id 'pmd'
+    id 'findbugs'
+    id 'jacoco'
+}
+
+apply {
+    from 'gradle/java-bootclasspath.gradle'
+    // --- for tests ---
+    from 'gradle/jacoco.gradle'
+    from 'gradle/findbugs-console-output.gradle'
+    from 'gradle/scala.gradle'
+}
+
+ext {
+    // whenever the logs should write logging output or not
+    testsLogging = false
+}
+
+scala {
+    version '2.11.5'
+}
+
+// --=[ javac opts ]=--
+compileJava {
+    sourceCompatibility = 1.6
+    targetCompatibility = 1.6
+    options.deprecation = true
+    options.encoding = 'UTF-8'
+    options.incremental = true
+    options.compilerArgs = [ "-Werror", "-Xlint:all", "-Xlint:-processing" ]
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    provided group: "com.google.android", name: "android", version: "4.1.1.4"
+    provided group: 'org.projectlombok', name: 'lombok', version:'1.14.6'
+
+    compile group: 'com.google.guava', name: 'guava', version:'18.0'
+
+    // ----------------------------
+    // ---| TEST  DEPENDENCIES |---
+    // ----------------------------
+    compile scalaLang()
+    testCompile scalaLang()
+    testCompile scalaLibrary(group: 'org.scalatest', name: 'scalatest', version: '2.2.1')
+
+    testCompile group: 'org.mockito', name: 'mockito-core', version:'1.9.5'
+}
+
+
+// --- analysis ---
+test {
+    // ignoreFailures = true // FIXME
+    enableAssertions = true
+    finalizedBy jacocoTestReport
+
+    testLogging {
+        events = ["failed"]
+        if (testsLogging) { // FIXME: workaround of bug in Gradle, fixed in 2.4 only
+            events = ["started", "skipped", "failed"]
+            showStandardStreams = testsLogging
+        }
+        showExceptions = true
+        showCauses = true
+        exceptionFormat = "full"
+    }
+}
+
+pmd {
+    consoleOutput = true
+    ignoreFailures = false
+    ruleSetFiles = files("pmd-rules.xml")
+    sourceSets = [ sourceSets.main ] // only analyze main sources
+    toolVersion = '5.0.3'
+}
+
+findbugs {
+    toolVersion = '2.0.3'
+    ignoreFailures = false
+    effort = "default"
+    reportLevel = "medium"
+}
+
+findbugsTest.onlyIf { ext.hasProperty('analyzeTests') && ext.analyzeTests == true }
+
+jacoco {
+    toolVersion = "0.7.1.201405082137"
+    excludes = [ "org.sqlite.SQLite" ]
+}
+
+
+jacocoTestReport {
+    group = "Reporting"
+    description = "Generate Jacoco coverage reports after running tests."
+    enabled true
+    shouldRunAfter test
+
+    reports {
+        xml {
+            enabled true
+            destination "${buildDir}/reports/coverage/jacoco.xml"
+        }
+        html {
+            enabled true
+            destination "${buildDir}/reports/coverage/"
+        }
+    }
+}

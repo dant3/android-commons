@@ -1,0 +1,9 @@
+plugins.withType(JacocoPlugin) { // hooks in - if project has plugin JaCoCo enabled it will run
+    JacocoPluginExtension.metaClass.excludes = new ArrayList<String>()
+
+    afterEvaluate {
+        tasks.withType(Test) {
+            it.excludes = project.jacoco.excludes
+        }
+    }
+}

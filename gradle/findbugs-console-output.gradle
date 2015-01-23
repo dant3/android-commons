@@ -1,0 +1,56 @@
+afterEvaluate {
+    tasks.withType(FindBugs) { findBugsTask ->
+        def consoleReportTask = tasks.create("${findBugsTask.getName()}ConsoleReport") {
+            description = "Displays Findbugs results in the console output"
+            enabled = findBugsTask.isEnabled()
+            onlyIf { findBugsTask.didWork }
+            def ignoreFailures = findBugsTask.ignoreFailures
+            mustRunAfter(findBugsTask)
+
+            def describeBug = { BugInstance ->
+                def src = BugInstance.SourceLine
+                def type = BugInstance.'@type'
+                def link = "http://findbugs.sourceforge.net/bugDescriptions.html#${type}"
+                def file = src.'@sourcepath'[0]
+                def lines = "${src.'@start'[0]}-${src.'@end'[0]}"
+
+                "Bug type: $type\n" +
+                "Description: $link\n" +
+                "Location: $file @ Lines $lines"
+            }
+
+
+            doLast {
+                def inputFile = new File("${findBugsTask.reports.xml.destination}")
+                if (inputFile.exists()) {
+                    def xml = new XmlParser().parse(inputFile)
+                    def bugs = xml.BugInstance
+                    def bugsCount = bugs.size()
+                    if (bugsCount > 0) {
+                        logger.lifecycle('\n')
+
+                        for (bug in bugs) {
+                            logger.lifecycle(describeBug(bug) + '\n')
+                        }
+
+                        def totalBugs = "Total bugs: $bugsCount"
+
+                        if (ignoreFailures) {
+                            logger.warn(totalBugs)
+                        } else {
+                            logger.error(totalBugs)
+                        }
+                    }
+                } else {
+                    def errorMsg = "Findbugs XML report is absent: ${inputFile.getPath()}"
+                    if (ignoreFailures) {
+                        logger.warn(errorMsg)
+                    } else {
+                        throw new IllegalStateException(errorMsg)
+                    }
+                }
+            }
+        }
+        findBugsTask.finalizedBy(consoleReportTask)
+    }
+}
