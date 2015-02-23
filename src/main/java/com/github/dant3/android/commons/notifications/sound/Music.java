@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 
-@Slf4j
 public class Music implements Sound {
     protected final MediaPlayer mediaPlayer = new MediaPlayer();
     private final Context context;

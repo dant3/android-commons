@@ -5,11 +5,9 @@ import android.content.res.AssetFileDescriptor;
 import android.media.AudioManager;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 
-@Slf4j
 public class SoundBackend {
     private static final int SOUND_POOL_SOUND_QUALITY = 0;
     private static final int SOUND_POOL_MAX_STREAMS = 1;
