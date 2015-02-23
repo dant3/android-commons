@@ -95,7 +95,7 @@ pmd {
 }
 
 findbugs {
-    toolVersion = '3.0.1-rc1'
+    toolVersion = '3.0.0'
     ignoreFailures = false
     effort = "default"
     reportLevel = "medium"
